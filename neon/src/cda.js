@@ -65,19 +65,43 @@ var CDA = (function () {
   }
 
   /* ---------- ítems en la pista ---------- */
+  function activeItems() {
+    var segs = GAME.state.segments, n = segs.length, out = [], i, j;
+    for (i = 0; i < n; i++) {
+      var a = segs[i].sprites;
+      for (j = 0; j < a.length; j++) { if (a[j].cda) { out.push(a[j].id); } }
+    }
+    return out;
+  }
+
+  function nextRevision() {
+    var revs = CDA_ITEMS.filter(function (x) { return x.id !== 'gasolina'; });
+    st.k = (st.k || 0) + 1;
+    return revs[(st.k - 1) % revs.length].id;
+  }
+
+  /* Pone un ítem más adelante del carro, en carril al azar. Máximo 4 a la vez.
+     Cuando el tanque va por 7, sale una gasolina que recarga. */
+  function spawnAhead() {
+    var segs = GAME.state.segments, n = segs.length;
+    var act = activeItems();
+    if (act.length >= 4) { return; }
+    var cur = st.lastIdx == null ? 0 : st.lastIdx;
+    var at = (cur + 35 + Math.floor(Math.random() * 20)) % n;
+    var lane = [-0.55, 0, 0.55][Math.floor(Math.random() * 3)];
+    var id = (st.count >= 7 && act.indexOf('gasolina') < 0) ? 'gasolina' : nextRevision();
+    segs[at].sprites.push({ source: 'cda_' + id, offset: lane, scale: 1.7, cda: true, id: id });
+  }
+
   function placeItems() {
-    var gs = GAME.state, segs = gs.segments, n = segs.length, k = 0, i, lane;
-    var lanes = [-0.55, 0, 0.55];
-    for (i = 0; i < n; i++) {                       /* limpiar marcas previas */
+    var segs = GAME.state.segments, n = segs.length, i, j;
+    for (i = 0; i < n; i++) {
       var arr = segs[i].sprites;
-      for (var j = arr.length - 1; j >= 0; j--) { if (arr[j].cda) { arr.splice(j, 1); } }
+      for (j = arr.length - 1; j >= 0; j--) { if (arr[j].cda) { arr.splice(j, 1); } }
     }
-    for (i = 30; i < n - 10; i += ITEM_EVERY) {
-      lane = lanes[Math.floor(Math.random() * 3)];
-      var it = CDA_ITEMS[k % CDA_ITEMS.length]; k++;
-      segs[i].sprites.push({ source: 'cda_' + it.id, offset: lane, scale: 1.7, cda: true, id: it.id });
-    }
-    st.segLen = gs.trackLength / n;
+    st.segLen = GAME.state.trackLength / n;
+    st.lastIdx = null;
+    for (i = 0; i < 3; i++) { spawnAhead(); }
   }
 
   function checkPickups(gs) {
@@ -109,11 +133,16 @@ var CDA = (function () {
     var it = null;
     for (var i = 0; i < CDA_ITEMS.length; i++) { if (CDA_ITEMS[i].id === id) { it = CDA_ITEMS[i]; } }
     if (!it) { return; }
+    if (id === 'gasolina') {
+      st.count = 0; st.refills++; st.pts += 150;
+      toast(it.icono + ' ' + it.nombre + ': ' + it.tip);
+      hud();
+      return;
+    }
     st.count++; st.total++; st.pts += ITEM_PTS;
     st.checked[id] = true;
     toast(it.icono + ' ' + it.nombre + ': ' + it.tip);
     hud();
-    if (st.count >= NEED) { lowTank(); }
   }
 
   function toast(text) {
@@ -182,7 +211,8 @@ var CDA = (function () {
 
   function start() {
     st = { pts: 0, count: 0, total: 0, right: 0, trivias: 0, left: GAME_SECONDS,
-           over: false, asking: false, checked: {}, lastIdx: null, segLen: 200 };
+           over: false, asking: false, checked: {}, lastIdx: null, segLen: 200,
+           spawnT: 0, k: 0, refills: 0 };
     deck = shuffle(CDA_QUESTIONS);
     hideCard();
     $('cda-hud').classList.remove('hidden');
@@ -201,8 +231,10 @@ var CDA = (function () {
     if (!st || st.over || st.asking) { return; }
     var gs = GAME.state;
     if (gs.mode !== 'race') { return; }
-    if (gs.lap !== st.lap) { st.lap = gs.lap; placeItems(); st.lastIdx = null; }
+    if (gs.lap !== st.lap) { st.lap = gs.lap; placeItems(); }
     st.left -= dt;
+    st.spawnT += dt;
+    if (st.spawnT >= 7) { st.spawnT = 0; spawnAhead(); }
     if (gs.timeLeft < 8) { gs.timeLeft = 20; }
     checkPickups(gs);
     hud();

@@ -289,3 +289,5 @@ var CDA_ITEMS = [
   "largo": "En un choque, un pasajero sin cinturón se convierte en proyectil para los demás. Abrocharlo toma dos segundos."
  }
 ];
+
+CDA_ITEMS.push({"id":"gasolina","icono":"⛽","nombre":"Gasolina","tip":"¡Recargaste! Nunca dejes el tanque casi vacío: puede dañar la bomba de gasolina.","largo":"La bomba se enfría con el combustible. Si la mandas en seco, se calienta y se daña."});
