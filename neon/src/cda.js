@@ -180,7 +180,43 @@ var CDA = (function () {
     ui.appendChild(toastEl);
     var card = el('div', 'cda-card'); card.id = 'cda-card';
     ui.appendChild(card);
+    initPad();
     showIntro();
+  }
+
+  /* Pedales en pantalla para el celular: se envían las mismas teclas que el juego ya entiende. */
+  function sendKey(type, key) {
+    var cv = $('screen');
+    if (!cv) { return; }
+    try {
+      cv.dispatchEvent(new KeyboardEvent(type, { key: key, code: key, bubbles: true, cancelable: true }));
+    } catch (e) { /* navegadores viejos */ }
+  }
+
+  function initPad() {
+    var touchy = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) ||
+      /[?&]touch=1/.test(location.search);
+    if (!touchy) { return; }
+    var pad = el('div', 'cda-pads');
+    var defs = [
+      ['\u25C0', 'ArrowLeft', 'steer'],
+      ['\u25B6', 'ArrowRight', 'steer2'],
+      ['FRENO', 'ArrowDown', 'brake'],
+      ['GAS', 'ArrowUp', 'gas']
+    ];
+    defs.forEach(function (d) {
+      var b = el('div', 'cda-pad ' + d[2], d[0]);
+      var key = d[1];
+      function down(e) { e.preventDefault(); sendKey('keydown', key); b.classList.add('on'); }
+      function up(e) { if (e && e.preventDefault) { e.preventDefault(); } sendKey('keyup', key); b.classList.remove('on'); }
+      b.addEventListener('pointerdown', down);
+      b.addEventListener('pointerup', up);
+      b.addEventListener('pointercancel', up);
+      b.addEventListener('pointerleave', up);
+      pad.appendChild(b);
+    });
+    pad.classList.add('page');
+    document.body.appendChild(pad);
   }
 
   function clear() {

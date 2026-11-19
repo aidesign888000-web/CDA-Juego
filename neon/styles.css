@@ -296,3 +296,21 @@ kbd {
   .cda-count { display: none; }
   .cda-fuel { margin-top: .1em; }
 }
+
+.cda-pads { position: absolute; inset: 0; pointer-events: none; }
+.cda-pad { position: absolute; bottom: 5%; width: 17%; height: 36%; pointer-events: auto; touch-action: none;
+  display: flex; align-items: center; justify-content: center; user-select: none; -webkit-user-select: none;
+  border: 2px solid rgba(255,255,255,.55); border-radius: 14px; background: rgba(0,0,0,.35);
+  color: #fff; font-weight: 800; font-size: 1.1em; }
+.cda-pad.on { filter: brightness(1.6); }
+.cda-pad.steer { left: 2%; }
+.cda-pad.steer2 { left: 21%; }
+.cda-pad.brake { right: 21%; background: rgba(220,38,38,.45); }
+.cda-pad.gas { right: 2%; bottom: 4%; width: 20%; height: 46%; background: rgba(34,197,94,.5); }
+
+.cda-pads.page { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+.cda-pads.page .cda-pad { position: absolute; bottom: 10px; width: 11vw; height: 46vh; min-width: 70px; font-size: 14px; }
+.cda-pads.page .cda-pad.steer { left: 8px; }
+.cda-pads.page .cda-pad.steer2 { left: calc(11vw + 18px); }
+.cda-pads.page .cda-pad.brake { right: calc(14vw + 18px); }
+.cda-pads.page .cda-pad.gas { right: 8px; bottom: 10px; width: 14vw; height: 56vh; min-width: 90px; }
