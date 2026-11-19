@@ -23,3 +23,6 @@ allows redistribution (CC0, CC-BY or an MIT-compatible licence).
 - **Fonts:** the HUD uses Godot's built-in default font, which ships with the
   engine.
 - **Audio:** there is no audio yet.
+
+## Modelos de Sakura Rally (MIT)
+Carro `rally_car` y árboles (`sakura_*`, `maple_*`, `cedar_a`, `bush_a`) tomados de [SummerEngine/sakura-rally](https://github.com/SummerEngine/sakura-rally), MIT (c) 2026 Summer Engine.
