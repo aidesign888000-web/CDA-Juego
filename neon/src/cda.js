@@ -131,6 +131,8 @@ var CDA = (function () {
       name = (u.get('n') || '').trim();
       plate = (u.get('p') || '').trim().toUpperCase();
     } catch (e) { /* ignore */ }
+    if (!name) { name = 'Conductor'; }
+    if (!plate) { plate = '-'; }
     patchSprites();
     var frame = document.querySelector('.screen-frame');
     var ui = el('div', 'cda-ui');
@@ -145,7 +147,7 @@ var CDA = (function () {
     ui.appendChild(toastEl);
     var card = el('div', 'cda-card'); card.id = 'cda-card';
     ui.appendChild(card);
-    showStart();
+    start();
   }
 
   function clear() {
