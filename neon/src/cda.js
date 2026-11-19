@@ -1,7 +1,7 @@
 /* CDA Boyacá Motor - revisión sobre Neon Drift '86.
- * Recoges ítems de revisión en la carretera (frenos, luces, bujes, gas...).
- * Cada uno muestra un consejo corto. Al juntar 10: "tanque bajo": entras a
- * tanquear (consejo largo) o respondes una trivia rápida para seguir. 90 s. */
+ * Hay una barra de combustible que se va agotando. Cada ítem de revisión que
+ * recojas la llena un poco y muestra un consejo. Si se acaba la gasolina sale
+ * una ⛽ que recarga todo. 90 segundos. */
 var CDA = (function () {
   'use strict';
 
@@ -81,7 +81,7 @@ var CDA = (function () {
   }
 
   /* Pone un ítem más adelante del carro, en carril al azar. Máximo 4 a la vez.
-     Cuando el tanque va por 7, sale una gasolina que recarga. */
+     Cuando el combustible baja de 30%, sale una gasolina que recarga. */
   function spawnAhead() {
     var segs = GAME.state.segments, n = segs.length;
     var act = activeItems();
@@ -89,7 +89,7 @@ var CDA = (function () {
     var cur = st.lastIdx == null ? 0 : st.lastIdx;
     var at = (cur + 35 + Math.floor(Math.random() * 20)) % n;
     var lane = [-0.55, 0, 0.55][Math.floor(Math.random() * 3)];
-    var id = (st.count >= 7 && act.indexOf('gasolina') < 0) ? 'gasolina' : nextRevision();
+    var id = (st.fuel < 30 && act.indexOf('gasolina') < 0) ? 'gasolina' : nextRevision();
     segs[at].sprites.push({ source: 'cda_' + id, offset: lane, scale: 1.7, cda: true, id: id });
   }
 
@@ -134,14 +134,15 @@ var CDA = (function () {
     for (var i = 0; i < CDA_ITEMS.length; i++) { if (CDA_ITEMS[i].id === id) { it = CDA_ITEMS[i]; } }
     if (!it) { return; }
     if (id === 'gasolina') {
-      st.count = 0; st.refills++; st.pts += 150;
+      st.fuel = 100; st.refills++; st.pts += 150;
       toast(it.icono + ' ' + it.nombre + ': ' + it.tip);
       hud();
       return;
     }
-    st.count++; st.total++; st.pts += ITEM_PTS;
+    st.fuel = Math.min(100, st.fuel + 22);
+    st.total++; st.pts += ITEM_PTS;
     st.checked[id] = true;
-    toast(it.icono + ' ' + it.nombre + ': ' + it.tip);
+    toast(it.icono + ' ' + it.nombre + ': ' + it.tip + ' (+22 combustible)');
     hud();
   }
 
@@ -168,15 +169,18 @@ var CDA = (function () {
     frame.appendChild(ui);
     var h = el('div', 'cda-hud hidden'); h.id = 'cda-hud';
     var s = el('span', '', 'CDA 0'); s.id = 'cda-score';
-    var c = el('span', 'cda-count', 'Revisión 0/10'); c.id = 'cda-count';
+    var c = el('span', 'cda-count', 'Combustible 100%'); c.id = 'cda-count';
     var t = el('span', 'cda-time', '90 s'); t.id = 'cda-time';
-    h.appendChild(s); h.appendChild(c); h.appendChild(t);
+    var bar = el('div', 'cda-fuel');
+    var fill = el('div', 'cda-fuel-fill'); fill.id = 'cda-fuel-fill';
+    bar.appendChild(fill);
+    h.appendChild(s); h.appendChild(c); h.appendChild(t); h.appendChild(bar);
     ui.appendChild(h);
     var toastEl = el('div', 'cda-toast hidden'); toastEl.id = 'cda-toast';
     ui.appendChild(toastEl);
     var card = el('div', 'cda-card'); card.id = 'cda-card';
     ui.appendChild(card);
-    start();
+    showIntro();
   }
 
   function clear() {
@@ -195,24 +199,28 @@ var CDA = (function () {
   }
   function focusGame() { var cv = $('screen'); if (cv && cv.focus) { cv.focus(); } }
 
-  function showStart() {
+  function showIntro() {
     var c = clear();
+    var logo = el('div', 'cda-logo');
+    var img = el('img');
+    img.src = 'logo-cda.png';
+    img.alt = 'CDA Boyacá Motor';
+    img.onerror = function () {
+      logo.innerHTML = '';
+      logo.appendChild(el('div', 'cda-logo-fallback', 'CDA'));
+      logo.appendChild(el('div', '', 'BOYACÁ MOTOR'));
+    };
+    logo.appendChild(img);
+    c.appendChild(logo);
     c.appendChild(el('h2', '', 'CDA Boyacá Motor'));
-    c.appendChild(el('p', '', 'Maneja y recoge los ítems de revisión de tu carro. ¡Tienes 90 segundos!'));
-    var n = el('input'); n.placeholder = 'Tu nombre'; n.value = name; n.maxLength = 24;
-    var p = el('input'); p.placeholder = 'Placa (ABC123)'; p.value = plate; p.maxLength = 8;
-    c.appendChild(n); c.appendChild(p);
-    c.appendChild(button('Empezar', '', function () {
-      name = n.value.trim(); plate = p.value.trim().toUpperCase();
-      if (!name || !plate) { return; }
-      start();
-    }));
+    c.appendChild(el('p', '', 'Maneja y cuida el combustible. Cada ítem de revisión que recojas llena el tanque y te enseña algo de tu carro.'));
+    c.appendChild(button('Empezar', '', function () { start(); }));
   }
 
   function start() {
     st = { pts: 0, count: 0, total: 0, right: 0, trivias: 0, left: GAME_SECONDS,
            over: false, asking: false, checked: {}, lastIdx: null, segLen: 200,
-           spawnT: 0, k: 0, refills: 0 };
+           spawnT: 0, k: 0, refills: 0, fuel: 100 };
     deck = shuffle(CDA_QUESTIONS);
     hideCard();
     $('cda-hud').classList.remove('hidden');
@@ -233,6 +241,8 @@ var CDA = (function () {
     if (gs.mode !== 'race') { return; }
     if (gs.lap !== st.lap) { st.lap = gs.lap; placeItems(); }
     st.left -= dt;
+    st.fuel -= dt * 1.4;
+    if (st.fuel <= 0) { st.fuel = 0; hud(); finish(); return; }
     st.spawnT += dt;
     if (st.spawnT >= 7) { st.spawnT = 0; spawnAhead(); }
     if (gs.timeLeft < 8) { gs.timeLeft = 20; }
@@ -243,77 +253,11 @@ var CDA = (function () {
 
   function hud() {
     $('cda-score').textContent = 'CDA ' + st.pts;
-    $('cda-count').textContent = 'Revisión ' + st.count + '/' + NEED;
+    var f = $('cda-fuel-fill');
+    f.style.width = Math.max(0, st.fuel) + '%';
+    f.className = 'cda-fuel-fill' + (st.fuel < 12 ? ' crit' : st.fuel < 30 ? ' low' : '');
+    $('cda-count').textContent = 'Combustible ' + Math.round(st.fuel) + '%';
     $('cda-time').textContent = Math.max(0, Math.ceil(st.left)) + ' s';
-  }
-
-  /* ---------- tanque bajo ---------- */
-  function lowTank() {
-    st.asking = true;
-    try { GAME.pauseRace(); } catch (e) { /* ignore */ }
-    var c = clear();
-    c.appendChild(el('h2', 'bad', '¡Tanque bajo!'));
-    c.appendChild(el('p', '', 'Revisaste ' + NEED + ' partes. Para seguir: entra a tanquear o responde una trivia rápida.'));
-    c.appendChild(button('Entrar a tanquear', '', pitStop));
-    c.appendChild(button('Trivia rápida (' + TRIVIA_SECONDS + ' s) +' + TRIVIA_PTS, 'alt', trivia));
-  }
-
-  function lastChecked() {
-    var ids = Object.keys(st.checked), pick = ids[Math.floor(Math.random() * ids.length)];
-    for (var i = 0; i < CDA_ITEMS.length; i++) { if (CDA_ITEMS[i].id === pick) { return CDA_ITEMS[i]; } }
-    return CDA_ITEMS[0];
-  }
-
-  function pitStop() {
-    var it = lastChecked();
-    var c = clear();
-    c.appendChild(el('h2', 'ok', '⛽ Pit stop'));
-    c.appendChild(el('p', 'cda-tag', it.nombre));
-    c.appendChild(el('p', 'fact', it.largo));
-    c.appendChild(el('p', '', 'En el CDA Boyacá Motor revisamos esto por ti.'));
-    c.appendChild(button('Seguir', '', resume));
-  }
-
-  function trivia() {
-    if (!deck.length) { deck = shuffle(CDA_QUESTIONS); }
-    q = deck.pop();
-    var c = clear();
-    var bar = el('div', 'cda-timer'); var fill = el('div', 'cda-timer-fill'); bar.appendChild(fill);
-    c.appendChild(bar);
-    c.appendChild(el('h3', '', q.pregunta));
-    var done = false;
-    function end(ok) {
-      if (done) { return; }
-      done = true; clearInterval(quickTimer);
-      st.trivias++;
-      if (ok) { st.right++; st.pts += TRIVIA_PTS; }
-      var c2 = clear();
-      c2.appendChild(el('h2', ok ? 'ok' : 'bad', ok ? '¡Correcto! +' + TRIVIA_PTS : 'Casi...'));
-      if (!ok) { c2.appendChild(el('p', '', 'Respuesta: ' + q.opciones[q.correcta])); }
-      c2.appendChild(el('p', 'fact', q.dato));
-      c2.appendChild(button('Seguir', '', resume));
-      hud();
-    }
-    q.opciones.forEach(function (o, i) {
-      c.appendChild(button(o, 'opt', function () { end(i === q.correcta); }));
-    });
-    var t0 = performance.now();
-    clearInterval(quickTimer);
-    quickTimer = setInterval(function () {
-      var p = (performance.now() - t0) / (TRIVIA_SECONDS * 1000);
-      fill.style.width = Math.max(0, 100 - p * 100) + '%';
-      if (p >= 1) { end(false); }
-    }, 100);
-  }
-
-  function resume() {
-    hideCard();
-    st.count = 0;
-    st.asking = false;
-    hud();
-    if (st.left <= 0) { finish(); return; }
-    try { GAME.resumeRace(); } catch (e) { /* ignore */ }
-    focusGame();
   }
 
   /* ---------- final ---------- */

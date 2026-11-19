@@ -250,8 +250,8 @@ kbd {
 .cda-ui { position: absolute; inset: 0; z-index: 5; pointer-events: none;
   font-family: system-ui, sans-serif; font-size: clamp(11px, 2.3vw, 19px); }
 .cda-ui .hidden { display: none; }
-.cda-hud { position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%);
-  width: 52%; white-space: nowrap; flex-wrap: nowrap; display: flex; justify-content: space-between; flex-wrap: wrap;
+.cda-hud { position: absolute; top: 3%; left: 50%; transform: translateX(-50%);
+  width: 36%; flex-wrap: wrap; display: flex; justify-content: space-between; flex-wrap: wrap;
   background: rgba(0,0,0,.6); color: #fff; border-radius: 10px; padding: .3em .7em;
   font-weight: 800; }
 .cda-time { color: #f97316; }
@@ -281,3 +281,18 @@ kbd {
 .cda-card, .cda-card *, .cda-toast, .cda-hud, .cda-hud * { line-height: 1.3; letter-spacing: normal; text-shadow: none; }
 .cda-ui.shade::before { content: ""; position: absolute; inset: 0; background: rgba(0,0,0,.7); pointer-events: auto; }
 .cda-card { z-index: 2; }
+
+.cda-fuel { width: 100%; height: .6em; background: rgba(255,255,255,.25); border-radius: 6px; overflow: hidden; margin-top: .2em; }
+.cda-fuel-fill { height: 100%; width: 100%; background: #86efac; transition: width .2s linear; }
+.cda-fuel-fill.low { background: #f97316; }
+.cda-fuel-fill.crit { background: #dc2626; }
+.cda-logo { text-align: center; margin-bottom: .3em; }
+.cda-logo img { max-height: 90px; max-width: 80%; }
+.cda-logo-fallback { display: inline-block; font-size: 2.4em; font-weight: 900; color: #fff; background: #15803d;
+  border: 3px dashed #f97316; border-radius: 10px; padding: 0 .4em; }
+
+@media (max-height: 520px) {
+  .cda-hud { top: 2%; width: 24%; flex-direction: column; align-items: center; font-size: 11px; padding: .2em .4em; }
+  .cda-count { display: none; }
+  .cda-fuel { margin-top: .1em; }
+}
